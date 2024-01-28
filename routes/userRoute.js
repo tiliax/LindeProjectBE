@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import userModel from "../models/userModel.js";
 import isAuthenticated from "../middleware/authMiddleware.js";
+import userSignupSchema from "../validationSchemas/userSignupSchema.js"
+import validation from "../middleware/validationMiddleware.js";
+
 
 const route = express.Router();
 
@@ -23,7 +26,7 @@ const boxImageUpload = multer({
 });
 
 //###############ROUTES###############
-route.post("/signup", async (req, res) => {
+route.post("/signup",validation(userSignupSchema), async (req, res) => {
     try {
         const {
             signupUsername,
