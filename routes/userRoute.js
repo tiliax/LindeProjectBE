@@ -33,21 +33,7 @@ route.post("/signup",validation(userSignupSchema), async (req, res) => {
             signupPassword,
             signupCurrentUserLocation,
         } = req.body;
-        if (
-            !signupUsername ||
-            !signupPassword ||
-            !signupCurrentUserLocation
-        ) {
-            return res.json({ error: "All fields are required!" });
-        }
-        const userExist = await userModel.findOne({
-            userName: signupUsername,
-        });
-        if (userExist) {
-            return res.json({
-                error: `User "${signupUsername}" already exists!`,
-            });
-        }
+                
         const salt = await bcrypt.genSalt(10);
         const hashPassword = await bcrypt.hash(signupPassword, salt);
         const encryptedSignupPassword = hashPassword;
