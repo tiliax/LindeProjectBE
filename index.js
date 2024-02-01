@@ -5,7 +5,8 @@ import mongoose from "mongoose";
 // import multer from "multer";
 import cors from "cors";
 import userModel from "./models/userModel.js";
-import route from "./routes/userRoute.js";
+import {default as userRoute} from "./routes/userRoute.js";
+import {default as boxRoute} from "./routes/boxRoute.js";
 
 //###############EXPRESS SERVER SETUP###############
 
@@ -23,7 +24,9 @@ server.use(
 );
 server.options("*", cors());
 server.use(cookieParser());
-server.use("/box", route);
+server.use("/user", userRoute);
+server.use("/box", boxRoute);
+
 
 //###############MONGODB CONNECTION###############
 const mongoDB = process.env.MONGO_CONNECTION;
