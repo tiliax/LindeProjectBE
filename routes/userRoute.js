@@ -1,140 +1,21 @@
 import express from "express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import multer from "multer";
 import userModel from "../models/userModel.js";
 import isAuthenticated from "../middleware/authMiddleware.js";
 import userSignupSchema from "../validationSchemas/userSignupSchema.js"
 import validation from "../middleware/validationMiddleware.js";
-
+import * as user from "../controller/userController.js"
 
 const route = express.Router();
 
-//###############MULTER STORAGE###############
-const boxImageStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "./public/images");
-    },
-    filename: (req, file, cb) => {
-        const filetype = file.mimetype.split("/").at(-1);
-        cb(null, `${file.fieldname}_${Date.now()}.${filetype}`);
-    },
-});
-
-const boxImageUpload = multer({
-    storage: boxImageStorage,
-});
 
 //###############ROUTES###############
-route.post("/signup",validation(userSignupSchema), async (req, res) => {
-    try {
-        const {
-            signupUsername,
-            signupPassword,
-            signupCurrentUserLocation,
-        } = req.body;
-                
-        const salt = await bcrypt.genSalt(10);
-        const hashPassword = await bcrypt.hash(signupPassword, salt);
-        const encryptedSignupPassword = hashPassword;
+route.post("/signup",validation(userSignupSchema), user.signup);
 
-        const newUser = await userModel.create({
-            userName: signupUsername,
-            userPassword: encryptedSignupPassword,
-            userLocation: signupCurrentUserLocation,
-            userBoxes: [],
-        });
+route.post("/login", user.login);
 
-        const token = await jwt.sign(
-            { id: newUser._id },
-            process.env.JWT_SECRET_KEY,
-            { expiresIn: process.env.JWT_EXPIRE },
-        );
-
-        return res.cookie("token", token).json({
-            success: true,
-            message: "User signup was successful",
-            data: newUser,
-        });
-    } catch (error) {
-        return res.json({ error: error });
-    }
-});
-
-route.post("/login", async (req, res) => {
-    try {
-        const { loginUsername, loginPassword } = req.body;
-        if (!loginUsername || !loginPassword) {
-            return res.json({ error: "All fields are required!" });
-        }
-        const userExist = await userModel.findOne({
-            userName: loginUsername,
-        });
-        if (!userExist) return res.json({ message: "No such user!" });
-        const isPasswordCorrect = await bcrypt.compare(
-            loginPassword,
-            userExist.userPassword,
-        );
-        if (!isPasswordCorrect) {
-            return res.json({ error: "Wrong password!" });
-        }
-        const token = await jwt.sign(
-            { id: userExist._id },
-            process.env.JWT_SECRET_KEY,
-            { expiresIn: process.env.JWT_EXPIRE },
-        );
-        return res.json({
-            token,
-            success: true,
-            message: "Login was successful!",
-            data: userExist,
-        });
-    } catch (error) {
-        return res.json({ error: error });
-    }
-});
-
-route.get("/user", isAuthenticated, (req, res) => {
+route.get("/", isAuthenticated, (req, res) => {
     return res.json({ user: req.user });
 });
-
-route.put(
-    "/addbox",
-    boxImageUpload.single("box_image"),
-    async (req, res) => {
-        const {
-            boxLocationCity,
-            boxLocationX,
-            boxLocationY,
-            books,
-            cloths,
-            dishes,
-            toys,
-            shoes,
-            decoration,
-            gadgets,
-            tools,
-            dvd,
-            videogames,
-            currentUser,
-        } = req.body;
-
-        await userModel.updateOne(
-            { _id: currentUser },
-            {
-                $push: {
-                    userBoxes: {
-                        x: parseFloat(boxLocationX),
-                        y: parseFloat(boxLocationY),
-                        boxImagePath: req.file ? req.file.filename : null,
-                        boxLocationCity: boxLocationCity,
-                    },
-                },
-            },
-        );
-        res.json({ success: true, user: currentUser });
-    },
-);
 
 route.delete("/delete", isAuthenticated, async (req, res) => {
     try {
